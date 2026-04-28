@@ -99,13 +99,13 @@ API.run.gameMap = nil
 API.run.roomFolder, API.run.elevator = nil
 API.game.plrFolder = API.run.detected and ws:WaitForChild("InGamePlayers") or ws:WaitForChild("Players")
 
-API.run.info
-API.run.currentRoom
-API.run.freeArea
-API.run.twisteds
-API.run.items
-API.run.machines
-API.run.fakeElevator
+API.run.info = nil
+API.run.currentRoom = nil
+API.run.freeArea = nil
+API.run.twisteds = nil
+API.run.items = nil
+API.run.machines = nil
+API.run.fakeElevator = nil
 API.run.puddles = nil
 
 globalTasks:spawn(function()
@@ -127,8 +127,7 @@ if API.run.detected then
   runTasks:spawn(function()
     API.run.elevator = ws:WaitForChild("Elevators"):WaitForChild("Elevator")
     API.run.roomFolder = ws:WaitForChild("CurrentRoom")
-      
-    local debounceThread = nil
+
     local lastRoom = nil
 
     local function updateReferences()
@@ -162,28 +161,20 @@ if API.run.detected then
           API.run.machines = newRoom:WaitForChild("Generators", 10)
           API.run.puddles = newRoom:WaitForChild("Puddles", 5)
 
-          runTasks:give(
-        	newRoom.ChildAdded:Connect(updateReferences),
-        	"roomChildAdded"
-          )
-
-          runTasks:give(
-            newRoom.ChildRemoved:Connect(updateReferences),
-            "roomChildRemoved"
-          )
+          runTasks:give(newRoom.ChildAdded:Connect(updateReferences), "roomChildAdded")
+          runTasks:give(newRoom.ChildRemoved:Connect(updateReferences)"roomChildRemoved")
 
           if newRoom ~= lastRoom then
             lastRoom = newRoom
           end
+
+          runTasks:give(API.run.roomFolder.ChildAdded:Connect(updateReferences), "roomFolderAdded")
+          runTasks:give(API.run.roomFolder.ChildRemoved:Connect(updateReferences), "roomFolderRemoved")
         end),
     	"debounce"
       )
     end
   end)
-
-  API.run.roomFolder.ChildAdded:Connect(updateReferences)
-  API.run.roomFolder.ChildRemoved:Connect(updateReferences)
-  updateReferences()
 end
 
 function API.run.getRoom() -- checks if currentroom folder has a parent, returns the folders child or nil
@@ -222,6 +213,8 @@ function API.run.floorUnloading() -- returns true if the current floor is unload
 end
 
 function API.run.getGameStats() -- returns the value of the target game stat
+  if not API.run.info then return nil end
+
   local gameStats = {
 	gamestarted = API.run.info:FindFirstChild("GameStarted").Value,
 	cardvoting = API.run.info:FindFirstChild("CardVoting").Value,
@@ -239,5 +232,9 @@ function API.run.getGameStats() -- returns the value of the target game stat
 
   return gameStats
 end
+
+-------------------------------------------------------------------------------------------------------------------------------
+
+return API
 
 -------------------------------------------------------------------------------------------------------------------------------
