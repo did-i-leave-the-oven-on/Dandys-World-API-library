@@ -30,17 +30,20 @@ local plrs = FindFirstChildOfClass(game, "Players")
 
 -- player
 API.player.plr = getins(plrs, "LocalPlayer")
+API.player.plrid = getins(API.player.plr, "UserId")
+API.player.plrStats = nil
+
 API.player.user = getins(API.player.plr, "Name")
 API.player.displayName = getins(API.player.plr, "DisplayName")
-API.player.plrid = getins(API.player.plr, "UserId")
+
 API.player.cam = ws.CurrentCamera
 API.player.mouse = getins(API.player.plr, "GetMouse")(API.player.plr)
 API.player.plrGui = API.player.plr:WaitForChild("PlayerGui")
+
 API.player.char = API.player.plr.Character or API.player.plr.CharacterAdded:Wait()
 API.player.hum = API.player.char:WaitForChild("Humanoid")
 API.player.root = API.player.char:WaitForChild("HumanoidRootPart")
 API.player.backpack = API.player.plr:WaitForChild("Backpack")
-API.player.plrStats = nil
 
 local function updcharrefs(char)
 	if not char then return end
