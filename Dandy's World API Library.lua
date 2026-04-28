@@ -47,7 +47,7 @@ API.player.backpack = API.player.plr:WaitForChild("Backpack")
 
 local function updcharrefs(char)
 	if not char then return end
-    
+
 	API.player.char = char
 	API.player.plrStats = char:WaitForChild("Stats", 5) or API.player.plrStats
 	API.player.backpack = API.player.plr:WaitForChild("Backpack", 5) or API.player.backpack
@@ -149,14 +149,14 @@ function API.run.getRoom() -- checks if there is a model child in the roomFolder
 	if API.run.currentRoom and API.run.currentRoom.Parent then
 		return API.run.currentRoom
 	end
-    
+
 	API.run.currentRoom = API.run.roomFolder:FindFirstChildWhichIsA("Model")
 	return API.run.currentRoom
 end
 
 function API.run.roomComplete() -- returns true if the room has all its components
 	local r = API.run.currentRoom
-    
+
 	return r:FindFirstChild("FreeArea") ~= nil and r:FindFirstChild("Monsters") ~= nil and r:FindFirstChild("Items") ~= nil and r:FindFirstChild("Generators") ~= nil
 end
 
@@ -170,8 +170,238 @@ end
 
 function API.run.floorUnloading() -- returns true if the room is being unloaded
 	local stats = API.run.getGameStats()
-    
+
 	return stats and stats.message:find("Quickly") ~= nil and not API.run.elevator:FindFirstChild("Opened").Value
+end
+
+function API.run.nearObstacle(tendrilExists, posCheck) -- returns true if the player is near an obstacle
+  	if not API.run.currentRoom then return false end   -- if tendrilExists is true, it will return true if Sprout's Tendril exists
+                                                       -- posCheck can be an optional Vector3 to test against instead of the player's root position
+	local origin = posCheck or API.player.root.Position
+ 
+    if API.run.freeArea then
+		for _, obj in ipairs(API.run.freeArea:GetChildren()) do
+			if obj.Name:find("Tendril") then
+				local root = obj:FindFirstChild("HumanoidRootPart")
+
+				if root then
+					local threshold = tendrilExists and 9999 or 23
+					if (root.Position - origin).Magnitude <= threshold then
+						return true, "Sprout"
+					end
+				end
+			end
+		end
+	end
+ 
+	for _, obj in ipairs(API.run.currentRoom:GetChildren()) do
+		if obj.Name:find("BlotHand") then
+			local model = obj:FindFirstChildWhichIsA("Model")
+			local root  = model and model:FindFirstChild("RootPart")
+ 
+			if root and (root.Position - origin).Magnitude <= 20 then
+				return true, "Blot"
+			end
+		end
+	end
+ 
+	return false, nil
+end
+ 
+function API.run.getStats(type, obj, stat) -- collects and returns a table of stats for the given object type
+	if type ~= "floor" then                -- if stat is provided, it returns only that field's value instead of the full table
+		if not obj then return end
+		if not obj:IsA("Model") then return end
+	end
+ 
+	local result
+ 
+	if type == "floor" then
+		if not API.run.currentRoom then return end
+		if API.run.floorUnloading() then return end
+ 
+		local twistedsonfloor = {}
+		for _, model in ipairs(API.run.twisteds:GetChildren()) do
+			if model:IsA("Model") then
+				table.insert(twistedsonfloor, model)
+			end
+		end
+ 
+		local itemsonfloor = {}
+		for _, model in ipairs(API.run.items:GetChildren()) do
+			if model:IsA("Model") then
+				table.insert(itemsonfloor, model)
+			end
+		end
+ 
+		result = {
+			floorname = API.run.currentRoom.Name,
+			twistedsonfloor = twistedsonfloor,
+			itemsonfloor = itemsonfloor,
+			hasdialoguetriggers = API.run.currentRoom:GetAttribute("HasDialogueTriggers"),
+		}
+ 
+	elseif type == "item" then
+		if not API.run.items then return end
+		if API.run.floorUnloading() then return end
+ 
+		local prompt = obj:FindFirstChild("Prompt")
+		local prox = prompt and prompt:FindFirstChildOfClass("ProximityPrompt")
+ 
+		local research
+		if obj.Name == "ResearchCapsule" then
+			research = prompt and prompt:FindFirstChild("Monster").Value or 0
+		end
+ 
+		result = {
+			prox = prox,
+			research = research,
+		}
+ 
+	elseif type == "machine" then
+		if not API.run.machines then return end
+		if API.run.floorUnloading() then return end
+ 
+		local stats = obj:FindFirstChild("Stats")
+		local machtype = obj:GetAttribute("MinigameType")
+ 
+		local pos
+		if machtype == "MovementTreadmill" then
+			machtype = "treadmill"
+			pos = obj:FindFirstChild("TeleportPositions"):FindFirstChild("TreadmillTeleportPosition").CFrame * CFrame.new(0, 2.3, 0)
+		else
+			machtype = machtype == "Circle" and "circle" or "normal"
+			pos = obj:FindFirstChild("TeleportPositions"):FindFirstChild("TeleportPosition").CFrame * CFrame.new(0, 2.3, 0)
+		end
+ 
+		local prox
+		local promptfolder = obj:FindFirstChild("Prompt")
+		if promptfolder then
+			prox = promptfolder:FindFirstChildOfClass("ProximityPrompt")
+				or (promptfolder:FindFirstChild("Attachment") and promptfolder.Attachment:FindFirstChildOfClass("ProximityPrompt"))
+				or obj:FindFirstChild("ProximityPrompt", true)
+		end
+ 
+		result = {
+			pos = pos,
+			prox = prox,
+			active = stats:FindFirstChild("ActivePlayer").Value,
+			completed = stats:FindFirstChild("Completed").Value,
+			possessed = stats:FindFirstChild("Connie").Value,
+			amount = stats:FindFirstChild("CurrentAmount").Value,
+			required = stats:FindFirstChild("RequiredAmount").Value,
+			machtype = machtype,
+		}
+ 
+	elseif type == "twisted" then
+		if not API.run.twisteds or not API.run.currentRoom then return end
+ 
+		local tname = obj.Name
+		local troot = obj:FindFirstChild("HumanoidRootPart") or obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+ 
+		local hearingrad, intrestrad, hitboxrad, visionrad, intresttime, LoS, hitcooldown = 0, 0, 0, 0, 0, 0, 0
+		local chaser = not tname:find("Connie") and not tname:find("Blot") and obj:FindFirstChild("Chaser")
+		if chaser then
+			local function cv(n) return chaser:FindFirstChild(n).Value end
+			hearingrad = cv("HearingRadius")
+			intrestrad = cv("InstantRadius")
+			hitboxrad = cv("HitboxRadius")
+			visionrad = cv("VisionRadius")
+			intresttime = cv("InterestTime")
+			LoS = cv("LineOfSight")
+			hitcooldown = cv("HitCooldown")
+		end
+ 
+		local chasingValue = not tname:find("Connie") and not tname:find("Blot") and obj:FindFirstChild("ChasingValue")
+		local chasing = chasingValue and chasingValue.Value or nil
+		local ischasing = chasing ~= nil
+ 
+		local hasability = obj:FindFirstChild("Grabbing")
+		local usingability = hasability and hasability.Value
+ 
+		local alerted = obj:GetAttribute("Alerted")
+ 
+		local plrresearch = rst:FindFirstChild("PlayerData") and rst.PlayerData:FindFirstChild(API.player.plrid) and rst.PlayerData[API.player.plrid]:FindFirstChild("Research")
+		local tr = plrresearch and plrresearch:FindFirstChild(tname)
+		local research = tr and tr.Value or 0
+ 
+		result = {
+			name = tname,
+			troot = troot,
+			alerted = alerted,
+			research = research,
+			hearingrad = hearingrad,
+			intrestrad = intrestrad,
+			hitboxrad = hitboxrad,
+			visionrad = visionrad,
+			intresttime = intresttime,
+			LoS = LoS,
+			hitcooldown = hitcooldown,
+			chasing = chasing,
+			ischasing = ischasing,
+			hasability = hasability,
+			usingability = usingability,
+		}
+ 
+	elseif type == "player" then
+		local ins = plrs:FindFirstChild(obj.Name)
+		if not ins then return end
+ 
+		local currenttoon = obj:GetAttribute("ToonName")
+ 
+		if not API.run.detected then
+			return { ins = ins, currenttoon = currenttoon }
+		end
+ 
+		local runstats = API.run.info and API.run.info:FindFirstChild("PlayerStats") and API.run.info.PlayerStats:FindFirstChild(ins.Name)
+ 
+		local function fetchitem(slot)
+			local slotObj = obj:FindFirstChild("Inventory"):FindFirstChild("Slot" .. slot)
+			if slot == 4 and not slotObj then return "None" end
+			return slotObj.Value
+		end
+ 
+		local slot1, slot2, slot3, slot4 = fetchitem(1), fetchitem(2), fetchitem(3), fetchitem(4)
+ 
+		local abilitycooldown, currentabilitycooldown
+		for _, ability in pairs(obj:FindFirstChild("Abilities"):GetChildren()) do
+			local cd = ability:FindFirstChild("Cooldown")
+			if cd then
+				abilitycooldown = cd.Value
+				currentabilitycooldown = ability:FindFirstChild("CurrentCooldown").Value
+			end
+		end
+ 
+		result = {
+			ins = ins,
+			currenttoon = currenttoon,
+			icon = obj:FindFirstChild("Config"):FindFirstChild("Icon").Texture,
+			dead = not API.game.plrFolder:FindFirstChild(ins.Name),
+			left = false,
+			toonpicked = ins:GetAttribute("SelectedCharacter"),
+			currentstealth = ins:GetAttribute("Stealth"),
+			twistedschasing = ins:GetAttribute("ChaseCount"),
+			extracting = obj:FindFirstChild("Decoding").Value,
+			slot1 = slot1,
+			slot2 = slot2,
+			slot3 = slot3,
+			slot4 = slot4,
+			inventoryfull = slot1 ~= "None" and slot2 ~= "None" and slot3 ~= "None" and slot4 ~= "None",
+			trinket1 = ins:GetAttribute("EquippedTrinket1") or "None",
+			trinket2 = ins:GetAttribute("EquippedTrinket2") or "None",
+			abilitycooldown = abilitycooldown,
+			currentabilitycooldown = currentabilitycooldown,
+			capsulespickedup = runstats and runstats:FindFirstChild("Capsules").Value,
+			itemspickedup = runstats and runstats:FindFirstChild("Items").Value,
+			machinescompleted = runstats and runstats:FindFirstChild("Generators").Value,
+			ichorearned = runstats and runstats:FindFirstChild("Ichor").Value,
+			twistedsencountered = runstats and runstats:FindFirstChild("Monsters").Value,
+			tapescollected = runstats and runstats:FindFirstChild("SurvivalPoints").Value,
+		}
+	end
+ 
+	if stat ~= nil then return result[stat] end
+	return result
 end
 
 function API.run.getGameStats() -- returns a table of all the current game stats
