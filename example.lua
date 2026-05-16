@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------------------------------------------------------
 
 -- load it
-local API = loadstring(game:HttpGet("https://your-api-url-here.lua"))()
+local API = loadstring(game:HttpGet("https://raw.githubusercontent.com/did-i-leave-the-oven-on/Dandys-World-API-library/refs/heads/main/Dandy's%20World%20API%20Library.lua"))()
 
 -------------------------------------------------------------------------------------------------------------------------------
 
