@@ -1,6 +1,8 @@
 -------------------------------------------------------------------------------------------------------------------------------
 
 local API = {
+	funcs = {},
+	
 	player = {},
 	game = {},
 	lobby = {},
@@ -46,7 +48,7 @@ API.player.hum = API.player.char:WaitForChild("Humanoid")
 API.player.root = API.player.char:WaitForChild("HumanoidRootPart")
 API.player.backpack = API.player.plr:WaitForChild("Backpack")
 
-local function updcharrefs(char)
+function API.funcs.updateCharacterRefs(char)
 	if not char then return end
 
 	API.player.char = char
@@ -56,9 +58,11 @@ local function updcharrefs(char)
 	API.player.root = char:WaitForChild("HumanoidRootPart", 5) or API.player.root
 end
 
-updcharrefs(API.player.char)
+API.funcs.updateCharacterRefs(API.player.char)
 
-globalTasks:give(API.player.plr.CharacterAdded:Connect(updcharrefs), "charAdded")
+globalTasks:give(API.player.plr.CharacterAdded:Connect(function()
+	API.funcs.updateCharacterRefs()
+end), "charAdded")
 
 globalTasks:give(ws:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
 	API.player.cam = ws.CurrentCamera
@@ -92,13 +96,13 @@ API.run.puddles = nil -- currentRoom.Puddles (ichor leak floors only)
 -- keep character refs up to date
 globalTasks:spawn(function()
 	if API.game.plrFolder:FindFirstChild(API.player.user) then
-		updcharrefs(API.player.char)
+		API.funcs.updateCharacterRefs(API.player.char)
 	end
 end)
 
 globalTasks:give(API.game.plrFolder.ChildAdded:Connect(function(child)
 	if child.Name == API.player.user then
-		updcharrefs(API.player.char)
+		API.funcs.updateCharacterRefs(API.player.char)
 	end
 end), "playerFolderAdded")
 
@@ -444,6 +448,52 @@ function API.run.getGameStats() -- returns a table of all the current game stats
 		boughtnothingfor = API.run.info:FindFirstChild("DandyTracker"):FindFirstChild("NoBuy").Value,
 		message = val("Message"),
 	}
+end
+
+function API.mapname(name) -- used for name mapping
+	local itemnamemap = {
+		["Air Horn"]                 = "AirHorn",
+		["Bandage"]                  = "Bandage",
+		["Bonbon"]                   = "BonBon",
+		["Bottle o' Pop"]            = "PopBottle",
+		["Box o' Chocolates"]        = "ChocolateBox",
+		["Chocolate"]                = "Chocolate",
+		["Christmas Cookie"]         = "ChristmasCookie",
+		["Easter Egg"]               = "DandyEasterEggs",
+		["Eject Button"]             = "EjectButton",
+		["Extraction Speed Candy"]   = "ExtractionSpeedCandy",
+		["Event Currency"]           = "HolidayCollectibleItem",
+		["Fake Capsule"]             = "FakeCapsule",
+		["Gumballs"]                 = "Gumball",
+		["Health Kit"]               = "HealthKit",
+		["Instructions"]             = "Instructions",
+		["Jawbreaker"]               = "Jawbreaker",
+		["Jumper Cable"]             = "JumperCable",
+		["Pop"]                      = "Pop", 
+		["Protein Bar"]              = "ProteinBar",
+		["Research Capsule"]         = "ResearchCapsule",
+		["Skill Check Candy"]        = "SkillCheckCandy",
+		["Smoke Bomb"]               = "SmokeBomb",
+		["Speed Candy"]              = "SpeedCandy",
+		["Stamina Candy"]            = "StaminaCandy",
+		["Stealth Candy"]            = "StealthCandy",
+		["Stopwatch"]                = "Stopwatch",
+		["Tape"]                     = "Tape",
+		["Valve"]                    = "Valve"
+	}
+
+	if name:find("Monster") then
+		string.gsub(name, "Monster", "")
+		return "Twisted " .. name
+	end
+
+	if name == "RazzleDazzle" then
+		return "Razzle & Dazzle"
+	elseif name == "Blott" then
+		return "Blot"
+	end
+
+	return itemnamemap[name] or name
 end
 
 -------------------------------------------------------------------------------------------------------------------------------
