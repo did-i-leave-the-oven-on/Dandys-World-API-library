@@ -89,7 +89,7 @@ API.run.puddles = nil -- currentRoom.Puddles (ichor leak floors only)
 
 -------------------------------------------------------------------------------------------------------------------------------
 
--- keep character refs up to datew
+-- keep character refs up to date
 globalTasks:spawn(function()
 	if API.game.plrFolder:FindFirstChild(API.player.user) then
 		updcharrefs(API.player.char)
@@ -146,7 +146,7 @@ end
 -------------------------------------------------------------------------------------------------------------------------------
 
 -- helpers
-function API.run.getRoom() -- checks if there is a model child in the roomFolder; if there is, assign currentRoom and returns it
+function API.run.getRoom() -- checks if there is a model child in the roomFolder. if there is, it assigns currentRoom and returns it
 	if API.run.currentRoom and API.run.currentRoom.Parent then
 		return API.run.currentRoom
 	end
@@ -155,7 +155,7 @@ function API.run.getRoom() -- checks if there is a model child in the roomFolder
 	return API.run.currentRoom
 end
 
-function API.run.roomComplete() -- returns true if the room has all its components
+function API.run.roomComplete() -- returns true if the currentRoom has all its components
 	local r = API.run.currentRoom
 
 	return r:FindFirstChild("FreeArea") and r:FindFirstChild("Monsters") and r:FindFirstChild("Items") and r:FindFirstChild("Generators")
@@ -169,7 +169,7 @@ function API.run.floorLoaded() -- returns true if the floor has completely loade
 	return API.run.getGameStats().message:find("Doors open")
 end
 
-function API.run.floorUnloading() -- returns true if the room is being unloaded
+function API.run.floorUnloading() -- returns true if the floor is being unloaded
 	local stats = API.run.getGameStats()
 
 	return stats and stats.message:find("Quickly") and not API.run.elevator:FindFirstChild("Opened").Value
