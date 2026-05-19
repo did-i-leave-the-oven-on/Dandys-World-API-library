@@ -17,11 +17,11 @@ local globalTasks = Tisha.new()
 -------------------------------------------------------------------------------------------------------------------------------
 
 -- services
-local getmmfromerr = function(userdata, f, test) local ret = nil xpcall(f, function() ret = debug.info(2, "f") end, userdata, nil, 0) if (type(ret) ~= "function") or not test(ret) then return f end return ret end
-local randstring = function() local s = "" for i = 1, math.random(8, 15) do if math.random(2) == 2 then s = s .. string.char(math.random(65, 90)) else s = s .. string.char(math.random(97, 122)) end end return s end
+local getMetaMethodFromErr = function(userdata, f, test) local ret = nil xpcall(f, function() ret = debug.info(2, "f") end, userdata, nil, 0) if (type(ret) ~= "function") or not test(ret) then return f end return ret end
+local randString = function() local s = "" for i = 1, math.random(8, 15) do if math.random(2) == 2 then s = s .. string.char(math.random(65, 90)) else s = s .. string.char(math.random(97, 122)) end end return s end
 
-local getins = getmmfromerr(game, function(a,b) return a[b] end, function(f) local a = Instance.new("Folder") local b = randstring() a.Name = b return f(a, "Name") == b end)
-local FindFirstChildOfClass = getins(game, "FindFirstChildOfClass")
+local getIns = getMetaMethodFromErr(game, function(a,b) return a[b] end, function(f) local a = Instance.new("Folder") local b = randString() a.Name = b return f(a, "Name") == b end)
+local FindFirstChildOfClass = getIns(game, "FindFirstChildOfClass")
 
 local ws = FindFirstChildOfClass(game, "Workspace")
 local plrs = FindFirstChildOfClass(game, "Players")
@@ -30,15 +30,15 @@ local rst = FindFirstChildOfClass(game, "ReplicatedStorage")
 -------------------------------------------------------------------------------------------------------------------------------
 
 -- player
-API.player.plr = getins(plrs, "LocalPlayer")
-API.player.plrid = getins(API.player.plr, "UserId")
+API.player.plr = getIns(plrs, "LocalPlayer")
+API.player.plrid = getIns(API.player.plr, "UserId")
 API.player.plrStats = nil
 
-API.player.user = getins(API.player.plr, "Name")
-API.player.displayName = getins(API.player.plr, "DisplayName")
+API.player.user = getIns(API.player.plr, "Name")
+API.player.displayName = getIns(API.player.plr, "DisplayName")
 
 API.player.cam = ws.CurrentCamera
-API.player.mouse = getins(API.player.plr, "GetMouse")(API.player.plr)
+API.player.mouse = getIns(API.player.plr, "GetMouse")(API.player.plr)
 API.player.plrGui = API.player.plr:WaitForChild("PlayerGui")
 
 API.player.char = API.player.plr.Character or API.player.plr.CharacterAdded:Wait()
@@ -67,7 +67,7 @@ end), "cameraChanged")
 -------------------------------------------------------------------------------------------------------------------------------
 
 -- game
-local placeId = getins(game, "PlaceId")
+local placeId = getIns(game, "PlaceId")
 API.lobby.placeId = 16116270224
 API.run.placeId = 16552821455
 
@@ -158,26 +158,25 @@ end
 function API.run.roomComplete() -- returns true if the room has all its components
 	local r = API.run.currentRoom
 
-	return r:FindFirstChild("FreeArea") ~= nil and r:FindFirstChild("Monsters") ~= nil and r:FindFirstChild("Items") ~= nil and r:FindFirstChild("Generators") ~= nil
+	return r:FindFirstChild("FreeArea") and r:FindFirstChild("Monsters") and r:FindFirstChild("Items") and r:FindFirstChild("Generators")
 end
 
 function API.run.exists(plr) -- returns true if the target player (defaults to local player) is in the plrFolder folder
-	return API.game.plrFolder:FindFirstChild(plr and plr.Name or API.player.user) ~= nil
+	return API.game.plrFolder:FindFirstChild(plr and plr.Name or API.player.user)
 end
 
 function API.run.floorLoaded() -- returns true if the floor has completely loaded
-	return API.run.getGameStats().message:find("Doors open") ~= nil
+	return API.run.getGameStats().message:find("Doors open")
 end
 
 function API.run.floorUnloading() -- returns true if the room is being unloaded
 	local stats = API.run.getGameStats()
 
-	return stats and stats.message:find("Quickly") ~= nil and not API.run.elevator:FindFirstChild("Opened").Value
+	return stats and stats.message:find("Quickly") and not API.run.elevator:FindFirstChild("Opened").Value
 end
 
-function API.run.nearObstacle(tendrilExists, posCheck) -- returns true if the player is near an obstacle
-	if not API.run.currentRoom then return false end   -- if tendrilExists is true, it will return true if Sprout's Tendril exists
-	-- posCheck can be an optional Vector3 to test against instead of the player's root position
+function API.run.nearObstacle(tendrilExists, posCheck) -- returns true if the player is near an obstacle. if tendrilExists is true, it will return true if Sprout's Tendril exists. posCheck can be an optional Vector3 to test against instead of the player's root position
+	if not API.run.currentRoom then return false end
 	local origin = posCheck or API.player.root.Position
 
 	if API.run.freeArea then
@@ -209,8 +208,8 @@ function API.run.nearObstacle(tendrilExists, posCheck) -- returns true if the pl
 	return false, nil
 end
 
-function API.run.getStats(type, obj, stat) -- collects and returns a table of stats for the given object type
-	if type ~= "floor" then                -- if stat is provided, it returns only that field's value instead of the full table
+function API.run.getStats(type, obj, stat) -- collects and returns a table of stats for the given object type. if stat is provided, it returns only that field's value instead of the full table
+	if type ~= "floor" then
 		if not obj then return end
 		if not obj:IsA("Model") then return end
 	end
