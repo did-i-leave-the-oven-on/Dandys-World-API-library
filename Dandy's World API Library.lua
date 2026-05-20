@@ -271,9 +271,11 @@ function API.run.getStats(type, obj, stat) -- collects and returns a table of st
 		local stats = obj:FindFirstChild("Stats") or nil
 		local pos = obj:FindFirstChild("TeleportPositions"):FindFirstChild("TeleportPosition").CFrame * CFrame.new(0, 2.3, 0) or CFrame.new(0, 0, 0)
 
-		local prox
+		local prox, prox2
 		if obj:FindFirstChild("Prompt") then
-			prox = obj:FindFirstChild("ProximityPrompt", true) or obj.Prompt:FindFirstChildOfClass("ProximityPrompt") or obj.Prompt.Attachment:FindFirstChildOfClass("ProximityPrompt")
+			prox = obj:FindFirstChild("Prompt"):FindFirstChild("ProximityPrompt", true)
+		if obj:FindFirstChild("Prompt2") then
+			prox2 = obj:FindFirstChild("Prompt2"):FindFirstChild("ProximityPrompt", true)
 		end
 
 		local active = stats:FindFirstChild("ActivePlayer").Value
@@ -306,6 +308,7 @@ function API.run.getStats(type, obj, stat) -- collects and returns a table of st
 		result = {
 			pos = pos, 
 			prox = prox,
+			prox2 = prox2,
 			active = active, 
 			completed = completed, 
 			possessed = possessed, 
