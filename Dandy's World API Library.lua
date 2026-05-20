@@ -279,7 +279,7 @@ function API.run.getStats(type, obj, stat) -- collects and returns a table of st
 		end
 
 		local active = stats:FindFirstChild("ActivePlayer").Value
-		local active2 = stats:FindFirstChild("ActivePlayer2").Value
+		local active2 = stats:FindFirstChild("ActivePlayer2").Value or nil
 		local completed = stats:FindFirstChild("Completed").Value
 		local possessed = stats:FindFirstChild("Connie").Value
 		local amount = stats:FindFirstChild("CurrentAmount").Value
