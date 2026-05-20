@@ -279,6 +279,7 @@ function API.run.getStats(type, obj, stat) -- collects and returns a table of st
 		end
 
 		local active = stats:FindFirstChild("ActivePlayer").Value
+		local active2 = stats:FindFirstChild("ActivePlayer2").Value
 		local completed = stats:FindFirstChild("Completed").Value
 		local possessed = stats:FindFirstChild("Connie").Value
 		local amount = stats:FindFirstChild("CurrentAmount").Value
@@ -310,6 +311,7 @@ function API.run.getStats(type, obj, stat) -- collects and returns a table of st
 			prox = prox,
 			prox2 = prox2,
 			active = active, 
+			active2 = active2, 
 			completed = completed, 
 			possessed = possessed, 
 			amount = amount, 
