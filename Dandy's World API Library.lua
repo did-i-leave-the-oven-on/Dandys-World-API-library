@@ -274,12 +274,12 @@ function API.run.getStats(type, obj, stat) -- collects and returns a table of st
 		local prox, prox2
 		if obj:FindFirstChild("Prompt") then
 			prox = obj:FindFirstChild("Prompt"):FindFirstChild("ProximityPrompt", true)
-		if obj:FindFirstChild("Prompt2") then
+		if dualmachine then
 			prox2 = obj:FindFirstChild("Prompt2"):FindFirstChild("ProximityPrompt", true)
 		end
 
 		local active = stats:FindFirstChild("ActivePlayer").Value
-		local active2 = stats:FindFirstChild("ActivePlayer2").Value or nil
+		local active2 = dualmachine and stats:FindFirstChild("ActivePlayer2").Value or nil
 		local completed = stats:FindFirstChild("Completed").Value
 		local possessed = stats:FindFirstChild("Connie").Value
 		local amount = stats:FindFirstChild("CurrentAmount").Value
