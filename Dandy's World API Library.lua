@@ -2,7 +2,7 @@
 
 local API = {
 	funcs = {},
-	
+
 	player = {},
 	game = {},
 	lobby = {},
@@ -269,17 +269,33 @@ function API.run.getStats(type, obj, stat) -- collects and returns a table of st
 		local dualmachine = obj:GetAttribute("IsDualGen")
 
 		local stats = obj:FindFirstChild("Stats") or nil
-		local pos = obj:FindFirstChild("TeleportPositions"):FindFirstChild("TeleportPosition").CFrame * CFrame.new(0, 2.3, 0) or CFrame.new(0, 0, 0)
+		local pos, pos2
+
+		if obj:FindFirstChild("TeleportPositions") then
+			if obj:FindFirstChild("TeleportPositions"):FindFirstChild("TeleportPosition") then
+				pos = obj:FindFirstChild("TeleportPositions"):FindFirstChild("TeleportPosition").CFrame * CFrame.new(0, 2.3, 0)
+
+				if dualmachine then
+					pos2 = obj:FindFirstChild("TeleportPositions_Mirror"):FindFirstChild("TeleportPosition2").CFrame * CFrame.new(0, 2.3, 0)
+				end
+			else
+				pos = CFrame.new(0, 0, 0)
+				pos2 = CFrame.new(0, 0, 0)
+			end
+		else
+			pos = CFrame.new(0, 0, 0)
+			pos2 = CFrame.new(0, 0, 0)
+		end
 
 		local prox, prox2
 		if obj:FindFirstChild("Prompt") then
 			prox = obj:FindFirstChild("Prompt"):FindFirstChild("ProximityPrompt", true)
-		if dualmachine then
-			prox2 = obj:FindFirstChild("Prompt2"):FindFirstChild("ProximityPrompt", true)
+		elseif dualmachine then
+			prox2 = obj:WaitForChild("Prompt2"):FindFirstChild("ProximityPrompt", true) or nil
 		end
 
 		local active = stats:FindFirstChild("ActivePlayer").Value
-		local active2 = dualmachine and stats:FindFirstChild("ActivePlayer2").Value or nil
+		local active2 = dualmachine and stats:WaitForChild("ActivePlayer2").Value or nil
 		local completed = stats:FindFirstChild("Completed").Value
 		local possessed = stats:FindFirstChild("Connie").Value
 		local amount = stats:FindFirstChild("CurrentAmount").Value
@@ -289,6 +305,10 @@ function API.run.getStats(type, obj, stat) -- collects and returns a table of st
 		if machtype == "MovementTreadmill" then 
 			machtype = "treadmill"
 			pos = obj:FindFirstChild("TeleportPositions"):FindFirstChild("TreadmillTeleportPosition").CFrame * CFrame.new(0, 2.3, 0)
+
+			if dualmachine then
+				pos2 = obj:FindFirstChild("TeleportPositions_Mirror"):FindFirstChild("TreadmillTeleportPosition").CFrame * CFrame.new(0, 2.3, 0)
+			end
 		elseif machtype == "Circle" then 
 			machtype = "circle"
 		else
@@ -308,6 +328,7 @@ function API.run.getStats(type, obj, stat) -- collects and returns a table of st
 
 		result = {
 			pos = pos, 
+			pos2 = pos2,
 			prox = prox,
 			prox2 = prox2,
 			active = active, 
@@ -321,188 +342,188 @@ function API.run.getStats(type, obj, stat) -- collects and returns a table of st
 			machtype2 = machtype2
 		}
 
-	elseif type == "twisted" then
-		if not API.run.twisteds or not API.run.currentRoom then return end
+		elseif type == "twisted" then
+			if not API.run.twisteds or not API.run.currentRoom then return end
 
-		local tname = obj.Name
-		local troot = obj:FindFirstChild("HumanoidRootPart") or obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+			local tname = obj.Name
+			local troot = obj:FindFirstChild("HumanoidRootPart") or obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
 
-		local hearingrad, intrestrad, hitboxrad, visionrad, intresttime, LoS, hitcooldown = 0, 0, 0, 0, 0, 0, 0
-		local chaser = not tname:find("Connie") and not tname:find("Blot") and obj:FindFirstChild("Chaser")
-		if chaser then
-			local function cv(n) return chaser:FindFirstChild(n).Value end
-			hearingrad = cv("HearingRadius")
-			intrestrad = cv("InstantRadius")
-			hitboxrad = cv("HitboxRadius")
-			visionrad = cv("VisionRadius")
-			intresttime = cv("InterestTime")
-			LoS = cv("LineOfSight")
-			hitcooldown = cv("HitCooldown")
-		end
-
-		local chasingValue = not tname:find("Connie") and not tname:find("Blot") and obj:FindFirstChild("ChasingValue")
-		local chasing = chasingValue and chasingValue.Value or nil
-		local ischasing = chasing ~= nil
-
-		local hasability = obj:FindFirstChild("Grabbing")
-		local usingability = hasability and hasability.Value
-
-		local alerted = obj:GetAttribute("Alerted")
-
-		local plrresearch = rst:FindFirstChild("PlayerData") and rst.PlayerData:FindFirstChild(API.player.plrid) and rst.PlayerData[API.player.plrid]:FindFirstChild("Research")
-		local tr = plrresearch and plrresearch:FindFirstChild(tname)
-		local research = tr and tr.Value or 0
-
-		result = {
-			name = tname,
-			troot = troot,
-			alerted = alerted,
-			research = research,
-			hearingrad = hearingrad,
-			intrestrad = intrestrad,
-			hitboxrad = hitboxrad,
-			visionrad = visionrad,
-			intresttime = intresttime,
-			LoS = LoS,
-			hitcooldown = hitcooldown,
-			chasing = chasing,
-			ischasing = ischasing,
-			hasability = hasability,
-			usingability = usingability,
-		}
-
-	elseif type == "player" then
-		local ins = plrs:FindFirstChild(obj.Name)
-		if not ins then return end
-
-		local currenttoon = obj:GetAttribute("ToonName")
-
-		if not API.run.detected then
-			return { ins = ins, currenttoon = currenttoon }
-		end
-
-		local runstats = API.run.info and API.run.info:FindFirstChild("PlayerStats") and API.run.info.PlayerStats:FindFirstChild(ins.Name)
-
-		local function fetchitem(slot)
-			local slotObj = obj:FindFirstChild("Inventory"):FindFirstChild("Slot" .. slot)
-			if slot == 4 and not slotObj then return "None" end
-			return slotObj.Value
-		end
-
-		local slot1, slot2, slot3, slot4 = fetchitem(1), fetchitem(2), fetchitem(3), fetchitem(4)
-
-		local abilitycooldown, currentabilitycooldown
-		for _, ability in pairs(obj:FindFirstChild("Abilities"):GetChildren()) do
-			local cd = ability:FindFirstChild("Cooldown")
-			if cd then
-				abilitycooldown = cd.Value
-				currentabilitycooldown = ability:FindFirstChild("CurrentCooldown").Value
+			local hearingrad, intrestrad, hitboxrad, visionrad, intresttime, LoS, hitcooldown = 0, 0, 0, 0, 0, 0, 0
+			local chaser = not tname:find("Connie") and not tname:find("Blot") and obj:FindFirstChild("Chaser")
+			if chaser then
+				local function cv(n) return chaser:FindFirstChild(n).Value end
+				hearingrad = cv("HearingRadius")
+				intrestrad = cv("InstantRadius")
+				hitboxrad = cv("HitboxRadius")
+				visionrad = cv("VisionRadius")
+				intresttime = cv("InterestTime")
+				LoS = cv("LineOfSight")
+				hitcooldown = cv("HitCooldown")
 			end
+
+			local chasingValue = not tname:find("Connie") and not tname:find("Blot") and obj:FindFirstChild("ChasingValue")
+			local chasing = chasingValue and chasingValue.Value or nil
+			local ischasing = chasing ~= nil
+
+			local hasability = obj:FindFirstChild("Grabbing")
+			local usingability = hasability and hasability.Value
+
+			local alerted = obj:GetAttribute("Alerted")
+
+			local plrresearch = rst:FindFirstChild("PlayerData") and rst.PlayerData:FindFirstChild(API.player.plrid) and rst.PlayerData[API.player.plrid]:FindFirstChild("Research")
+			local tr = plrresearch and plrresearch:FindFirstChild(tname)
+			local research = tr and tr.Value or 0
+
+			result = {
+				name = tname,
+				troot = troot,
+				alerted = alerted,
+				research = research,
+				hearingrad = hearingrad,
+				intrestrad = intrestrad,
+				hitboxrad = hitboxrad,
+				visionrad = visionrad,
+				intresttime = intresttime,
+				LoS = LoS,
+				hitcooldown = hitcooldown,
+				chasing = chasing,
+				ischasing = ischasing,
+				hasability = hasability,
+				usingability = usingability,
+			}
+
+		elseif type == "player" then
+			local ins = plrs:FindFirstChild(obj.Name)
+			if not ins then return end
+
+			local currenttoon = obj:GetAttribute("ToonName")
+
+			if not API.run.detected then
+				return { ins = ins, currenttoon = currenttoon }
+			end
+
+			local runstats = API.run.info and API.run.info:FindFirstChild("PlayerStats") and API.run.info.PlayerStats:FindFirstChild(ins.Name)
+
+			local function fetchitem(slot)
+				local slotObj = obj:FindFirstChild("Inventory"):FindFirstChild("Slot" .. slot)
+				if slot == 4 and not slotObj then return "None" end
+				return slotObj.Value
+			end
+
+			local slot1, slot2, slot3, slot4 = fetchitem(1), fetchitem(2), fetchitem(3), fetchitem(4)
+
+			local abilitycooldown, currentabilitycooldown
+			for _, ability in pairs(obj:FindFirstChild("Abilities"):GetChildren()) do
+				local cd = ability:FindFirstChild("Cooldown")
+				if cd then
+					abilitycooldown = cd.Value
+					currentabilitycooldown = ability:FindFirstChild("CurrentCooldown").Value
+				end
+			end
+
+			result = {
+				ins = ins,
+				currenttoon = currenttoon,
+				icon = obj:FindFirstChild("Config"):FindFirstChild("Icon").Texture,
+				dead = not API.game.plrFolder:FindFirstChild(ins.Name),
+				left = false,
+				toonpicked = ins:GetAttribute("SelectedCharacter"),
+				currentstealth = ins:GetAttribute("Stealth"),
+				twistedschasing = ins:GetAttribute("ChaseCount"),
+				extracting = obj:FindFirstChild("Decoding").Value,
+				slot1 = slot1,
+				slot2 = slot2,
+				slot3 = slot3,
+				slot4 = slot4,
+				inventoryfull = slot1 ~= "None" and slot2 ~= "None" and slot3 ~= "None" and slot4 ~= "None",
+				trinket1 = ins:GetAttribute("EquippedTrinket1") or "None",
+				trinket2 = ins:GetAttribute("EquippedTrinket2") or "None",
+				abilitycooldown = abilitycooldown,
+				currentabilitycooldown = currentabilitycooldown,
+				capsulespickedup = runstats and runstats:FindFirstChild("Capsules").Value,
+				itemspickedup = runstats and runstats:FindFirstChild("Items").Value,
+				machinescompleted = runstats and runstats:FindFirstChild("Generators").Value,
+				ichorearned = runstats and runstats:FindFirstChild("Ichor").Value,
+				twistedsencountered = runstats and runstats:FindFirstChild("Monsters").Value,
+				tapescollected = runstats and runstats:FindFirstChild("SurvivalPoints").Value,
+			}
 		end
 
-		result = {
-			ins = ins,
-			currenttoon = currenttoon,
-			icon = obj:FindFirstChild("Config"):FindFirstChild("Icon").Texture,
-			dead = not API.game.plrFolder:FindFirstChild(ins.Name),
-			left = false,
-			toonpicked = ins:GetAttribute("SelectedCharacter"),
-			currentstealth = ins:GetAttribute("Stealth"),
-			twistedschasing = ins:GetAttribute("ChaseCount"),
-			extracting = obj:FindFirstChild("Decoding").Value,
-			slot1 = slot1,
-			slot2 = slot2,
-			slot3 = slot3,
-			slot4 = slot4,
-			inventoryfull = slot1 ~= "None" and slot2 ~= "None" and slot3 ~= "None" and slot4 ~= "None",
-			trinket1 = ins:GetAttribute("EquippedTrinket1") or "None",
-			trinket2 = ins:GetAttribute("EquippedTrinket2") or "None",
-			abilitycooldown = abilitycooldown,
-			currentabilitycooldown = currentabilitycooldown,
-			capsulespickedup = runstats and runstats:FindFirstChild("Capsules").Value,
-			itemspickedup = runstats and runstats:FindFirstChild("Items").Value,
-			machinescompleted = runstats and runstats:FindFirstChild("Generators").Value,
-			ichorearned = runstats and runstats:FindFirstChild("Ichor").Value,
-			twistedsencountered = runstats and runstats:FindFirstChild("Monsters").Value,
-			tapescollected = runstats and runstats:FindFirstChild("SurvivalPoints").Value,
+		if stat ~= nil then return result[stat] end
+		return result
+	end
+
+	function API.run.getGameStats() -- returns a table of all the current game stats
+		if not API.run.info then return nil end
+
+		local function val(name)
+			return API.run.info:FindFirstChild(name).Value
+		end
+
+		return {
+			gamestarted = val("GameStarted"),
+			cardvoting = val("CardVoting"),
+			dandyselling = val("DandyStoreOpen"),
+			currentfloor = val("Floor"),
+			flooractive = val("FloorActive"),
+			panicmode = val("Panic"),
+			machscompleted = val("GeneratorsCompleted"),
+			machsrequired = val("RequiredGenerators"),
+			blackout = val("BlackOut"),
+			playersalive = val("ActivePlayers"),
+			boughtnothingfor = API.run.info:FindFirstChild("DandyTracker"):FindFirstChild("NoBuy").Value,
+			message = val("Message"),
 		}
 	end
 
-	if stat ~= nil then return result[stat] end
-	return result
-end
+	function API.mapname(name) -- used for name mapping
+		local itemnamemap = {
+			["Air Horn"]                 = "AirHorn",
+			["Bandage"]                  = "Bandage",
+			["Bonbon"]                   = "BonBon",
+			["Bottle o' Pop"]            = "PopBottle",
+			["Box o' Chocolates"]        = "ChocolateBox",
+			["Chocolate"]                = "Chocolate",
+			["Christmas Cookie"]         = "ChristmasCookie",
+			["Easter Egg"]               = "DandyEasterEggs",
+			["Eject Button"]             = "EjectButton",
+			["Extraction Speed Candy"]   = "ExtractionSpeedCandy",
+			["Event Currency"]           = "HolidayCollectibleItem",
+			["Fake Capsule"]             = "FakeCapsule",
+			["Gumballs"]                 = "Gumball",
+			["Health Kit"]               = "HealthKit",
+			["Instructions"]             = "Instructions",
+			["Jawbreaker"]               = "Jawbreaker",
+			["Jumper Cable"]             = "JumperCable",
+			["Pop"]                      = "Pop", 
+			["Protein Bar"]              = "ProteinBar",
+			["Research Capsule"]         = "ResearchCapsule",
+			["Skill Check Candy"]        = "SkillCheckCandy",
+			["Smoke Bomb"]               = "SmokeBomb",
+			["Speed Candy"]              = "SpeedCandy",
+			["Stamina Candy"]            = "StaminaCandy",
+			["Stealth Candy"]            = "StealthCandy",
+			["Stopwatch"]                = "Stopwatch",
+			["Tape"]                     = "Tape",
+			["Valve"]                    = "Valve"
+		}
 
-function API.run.getGameStats() -- returns a table of all the current game stats
-	if not API.run.info then return nil end
+		if name:find("Monster") then
+			string.gsub(name, "Monster", "")
+			return "Twisted " .. name
+		end
 
-	local function val(name)
-		return API.run.info:FindFirstChild(name).Value
+		if name == "RazzleDazzle" then
+			return "Razzle & Dazzle"
+		elseif name == "Blott" then
+			return "Blot"
+		end
+
+		return itemnamemap[name] or name
 	end
 
-	return {
-		gamestarted = val("GameStarted"),
-		cardvoting = val("CardVoting"),
-		dandyselling = val("DandyStoreOpen"),
-		currentfloor = val("Floor"),
-		flooractive = val("FloorActive"),
-		panicmode = val("Panic"),
-		machscompleted = val("GeneratorsCompleted"),
-		machsrequired = val("RequiredGenerators"),
-		blackout = val("BlackOut"),
-		playersalive = val("ActivePlayers"),
-		boughtnothingfor = API.run.info:FindFirstChild("DandyTracker"):FindFirstChild("NoBuy").Value,
-		message = val("Message"),
-	}
-end
+	-------------------------------------------------------------------------------------------------------------------------------
 
-function API.mapname(name) -- used for name mapping
-	local itemnamemap = {
-		["Air Horn"]                 = "AirHorn",
-		["Bandage"]                  = "Bandage",
-		["Bonbon"]                   = "BonBon",
-		["Bottle o' Pop"]            = "PopBottle",
-		["Box o' Chocolates"]        = "ChocolateBox",
-		["Chocolate"]                = "Chocolate",
-		["Christmas Cookie"]         = "ChristmasCookie",
-		["Easter Egg"]               = "DandyEasterEggs",
-		["Eject Button"]             = "EjectButton",
-		["Extraction Speed Candy"]   = "ExtractionSpeedCandy",
-		["Event Currency"]           = "HolidayCollectibleItem",
-		["Fake Capsule"]             = "FakeCapsule",
-		["Gumballs"]                 = "Gumball",
-		["Health Kit"]               = "HealthKit",
-		["Instructions"]             = "Instructions",
-		["Jawbreaker"]               = "Jawbreaker",
-		["Jumper Cable"]             = "JumperCable",
-		["Pop"]                      = "Pop", 
-		["Protein Bar"]              = "ProteinBar",
-		["Research Capsule"]         = "ResearchCapsule",
-		["Skill Check Candy"]        = "SkillCheckCandy",
-		["Smoke Bomb"]               = "SmokeBomb",
-		["Speed Candy"]              = "SpeedCandy",
-		["Stamina Candy"]            = "StaminaCandy",
-		["Stealth Candy"]            = "StealthCandy",
-		["Stopwatch"]                = "Stopwatch",
-		["Tape"]                     = "Tape",
-		["Valve"]                    = "Valve"
-	}
+	return API
 
-	if name:find("Monster") then
-		string.gsub(name, "Monster", "")
-		return "Twisted " .. name
-	end
-
-	if name == "RazzleDazzle" then
-		return "Razzle & Dazzle"
-	elseif name == "Blott" then
-		return "Blot"
-	end
-
-	return itemnamemap[name] or name
-end
-
--------------------------------------------------------------------------------------------------------------------------------
-
-return API
-
--------------------------------------------------------------------------------------------------------------------------------
+	-------------------------------------------------------------------------------------------------------------------------------
