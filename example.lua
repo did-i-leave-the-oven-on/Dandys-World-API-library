@@ -30,14 +30,14 @@ task.spawn(function()
 		-- get floor stats
 		local floorStats = API.run.getStats("floor")
 		if floorStats then
-			print("Current room:", floorStats.floorname)
+			print("current room:", floorStats.floorname)
 			print("Twisteds in room:", #floorStats.twistedsonfloor)
-			print("Items in room:", #floorStats.itemsonfloor)
+			print("items in room:", #floorStats.itemsonfloor)
 		end
 
 		-- check if room is complete
 		if API.run.roomComplete() then
-			print("Room fully loaded")
+			print("room fully loaded")
 		end
 
 		-- check for Sprout's tendrils or Blot's hands
