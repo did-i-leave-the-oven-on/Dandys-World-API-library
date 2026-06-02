@@ -509,7 +509,14 @@ function API.run.getStats(type, obj, stat) -- collects and returns a table of st
 		}
 
 		if name:find("Monster") then
-			string.gsub(name, "Monster", "")
+			name = string.gsub(name, "Monster", "")
+
+			if name == "RazzleDazzle" then
+				name = "Razzle & Dazzle"
+			elseif name == "Blott" then
+				name = "Blot"
+			end
+
 			return "Twisted " .. name
 		end
 
