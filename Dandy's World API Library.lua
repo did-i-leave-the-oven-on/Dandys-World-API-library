@@ -321,6 +321,8 @@ function API.run.getStats(type, obj, stat) -- collects and returns a table of st
 				machtype2 = "treadmill"
 			elseif machtype2 == "Circle" then 
 				machtype2 = "circle"
+			elseif machtype2 == "SwimmyBarnaby" then 
+				machtype2 = "arcade"
 			else
 				machtype2 = "normal"
 			end
