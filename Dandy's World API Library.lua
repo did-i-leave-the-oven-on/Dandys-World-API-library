@@ -506,7 +506,7 @@ function API.run.getGameStats() -- returns a table of all the current game stats
 	}
 end
 
-function API.mapname(name) -- used for name mapping
+function API.run.mapName(name) -- used for name mapping
 	local itemnamemap = {
 		["Air Horn"] = "AirHorn",
 		["Bandage"] = "Bandage",
