@@ -110,16 +110,6 @@ end), "playerFolderAdded")
 
 -- room refs tracker
 if API.run.detected then
-	runTasks:spawn(function()
-		API.run.elevator = ws:WaitForChild("Elevators"):WaitForChild("Elevator")
-		API.run.roomFolder = ws:WaitForChild("CurrentRoom")
-
-		runTasks:give(API.run.roomFolder.ChildAdded:Connect(updateReferences), "roomFolderAdded")
-		runTasks:give(API.run.roomFolder.ChildRemoved:Connect(updateReferences), "roomFolderRemoved")
-
-		updateReferences()
-	end)
-
 	function updateReferences()
 		runTasks:remove("debounce")
 
@@ -145,6 +135,16 @@ if API.run.detected then
 			runTasks:give(newRoom.ChildRemoved:Connect(updateReferences), "roomChildRemoved")
 		end), "debounce")
 	end
+	
+	runTasks:spawn(function()
+		API.run.elevator = ws:WaitForChild("Elevators"):WaitForChild("Elevator")
+		API.run.roomFolder = ws:WaitForChild("CurrentRoom")
+
+		runTasks:give(API.run.roomFolder.ChildAdded:Connect(updateReferences), "roomFolderAdded")
+		runTasks:give(API.run.roomFolder.ChildRemoved:Connect(updateReferences), "roomFolderRemoved")
+
+		updateReferences()
+	end)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------
